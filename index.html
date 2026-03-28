@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Weather App</title>
+
+<style>
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: linear-gradient(135deg, #396184, #97bdbe);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+/* App container */
+.app {
+    background: rgba(255, 255, 255, 0.15);
+    padding: 30px;
+    border-radius: 20px;
+    backdrop-filter: blur(10px);
+    width: 320px;
+    text-align: center;
+    color: white;
+}
+
+/* Search */
+.search {
+    display: flex;
+    gap: 5px;
+}
+
+input {
+    flex: 1;
+    padding: 10px;
+    border-radius: 10px;
+    border: none;
+}
+
+button {
+    padding: 10px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+}
+
+/* Weather card */
+.weather-card {
+    margin-top: 20px;
+}
+
+.weather-card img {
+    width: 80px;
+}
+
+.extra {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+}
+
+.hidden {
+    display: none;
+}
+
+.error {
+    color: #ffcccc;
+    margin-top: 10px;
+}
+</style>
+
+</head>
+<body>
+
+<div class="app">
+    <h1>Weather App</h1>
+
+    <div class="search">
+        <input type="text" id="cityInput" placeholder="Enter city">
+        <button onclick="getWeather()">Search</button>
+        <button onclick="getLocationWeather()">📍</button>
+    </div>
+
+    <div id="loader" class="hidden">Loading...</div>
+
+    <div id="weatherCard" class="weather-card hidden">
+        <h2 id="cityName"></h2>
+        <img id="icon">
+        <h1 id="temp"></h1>
+        <p id="desc"></p>
+
+        <div class="extra">
+            <div>
+                <p>Humidity</p>
+                <h3 id="humidity"></h3>
+            </div>
+            <div>
+                <p>Wind</p>
+                <h3 id="wind"></h3>
+            </div>
+            <div>
+                <p>Feels</p>
+                <h3 id="feels"></h3>
+            </div>
+        </div>
+    </div>
+
+    <p id="error" class="error"></p>
+</div>
+
+<script>
+const apiKey = "0e9f8f81332f993e6dec5a77b6b15449";
+
+const loader = document.getElementById("loader");
+const card = document.getElementById("weatherCard");
+const errorText = document.getElementById("error");
+
+function showLoader() {
+    loader.classList.remove("hidden");
+    card.classList.add("hidden");
+    errorText.innerText = "";
+}
+
+function hideLoader() {
+    loader.classList.add("hidden");
+}
+
+function displayWeather(data) {
+    document.getElementById("cityName").innerText = data.name;
+    document.getElementById("temp").innerText = data.main.temp + "°C";
+    document.getElementById("desc").innerText = data.weather[0].description;
+
+    document.getElementById("humidity").innerText = data.main.humidity + "%";
+    document.getElementById("wind").innerText = data.wind.speed + " m/s";
+    document.getElementById("feels").innerText = data.main.feels_like + "°C";
+
+    const icon = data.weather[0].icon;
+    document.getElementById("icon").src =
+        "https://openweathermap.org/img/wn/" + icon + "@2x.png";
+
+    card.classList.remove("hidden");
+}
+
+function getWeather() {
+    const city = document.getElementById("cityInput").value.trim();
+
+    if (!city) {
+        errorText.innerText = "Enter a city name";
+        return;
+    }
+
+    showLoader();
+
+    fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&units=metric&appid=${apiKey}`)
+        .then(res => res.json())
+        .then(data => {
+            hideLoader();
+
+            if (data.cod == 200) {
+                displayWeather(data);
+            } else {
+                errorText.innerText = data.message;
+            }
+        })
+        .catch(() => {
+            hideLoader();
+            errorText.innerText = "Network error";
+        });
+}
+
+function getLocationWeather() {
+    if (!navigator.geolocation) {
+        errorText.innerText = "Geolocation not supported";
+        return;
+    }
+
+    showLoader();
+
+    navigator.geolocation.getCurrentPosition(position => {
+        const lat = position.coords.latitude;
+        const lon = position.coords.longitude;
+
+        fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${apiKey}`)
+            .then(res => res.json())
+            .then(data => {
+                hideLoader();
+
+                if (data.cod == 200) {
+                    displayWeather(data);
+                } else {
+                    errorText.innerText = data.message;
+                }
+            });
+    }, () => {
+        hideLoader();
+        errorText.innerText = "Location permission denied";
+    });
+}
+</script>
+
+</body>
+</html>
